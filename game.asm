@@ -98,7 +98,7 @@ nukeLife DWORD ? ;; default life time 20 * 10 px
 
 gameOverStr BYTE "Game Over!", 0
 gameOver DWORD 0
-pauseStr BYTE "Resume with Space Bar", 0
+pauseStr BYTE "Resume with Enter/Return", 0
 pause DWORD 0
 resumeStr BYTE "Pause with Space Bar", 0
 winStr BYTE "CONGRATULATIONS YOU WIN!", 0
@@ -1270,13 +1270,13 @@ noCollision:
 CheckCollision ENDP
 
 
-
-
 GameInit PROC USES ebx ecx esi
 	
 	mov timeclick, 1000
-	mov score, 0
-		
+	mov score, 0	
+	
+	invoke DrawStarField
+
         push score
         push offset fmtStrScore
         push offset outStrScore
@@ -1350,12 +1350,20 @@ GameInit ENDP
 
 
 GamePlay PROC USES ebx ecx
+
+	invoke DrawStarField
+
 	cmp gameOver, 1
 	je gameover
 	
 	cmp KeyPress, 20h ;;space
+	jne checkResume
+	mov pause, 1
+	jmp checkPause
+checkResume:
+	cmp KeyPress, 0dh ;;enter
 	jne checkPause
-	xor pause, 1
+	mov pause, 0
 checkPause:
 	cmp pause, 1
 	jne keepGoing
