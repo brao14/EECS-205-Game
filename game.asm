@@ -1080,10 +1080,10 @@ UpdateRocks PROC USES ecx
 	mov rock0on, 1
 updaterock0:
   invoke ClearRotateObject, rock0bitMap, rock0x, rock0y, rock0angle
-  add rock0y, 2
+  add rock0y, 1
   cmp rock0y, 400
-  jg rotate0
-  mov ecx, 1
+  jl rotate0
+  inc ecx
 rotate0:
   invoke RotateBlit, rock0bitMap, rock0x, rock0y, rock0angle
 
@@ -1099,10 +1099,10 @@ rotate0:
 	mov rock1on, 1
 updaterock1:
   invoke ClearRotateObject, rock1bitMap, rock1x, rock1y, rock1angle
-  add rock1y, 2
+  add rock1y, 1
   cmp rock1y, 400
-  jg rotate1
-  mov ecx, 1
+  jl rotate1
+  inc ecx
 rotate1:
   invoke RotateBlit, rock1bitMap, rock1x, rock1y, rock1angle
 
@@ -1118,10 +1118,10 @@ rotate1:
 	mov rock2on, 1
   updaterock2:
     invoke ClearRotateObject, rock2bitMap, rock2x, rock2y, rock2angle
-    add rock2y, 2
+    add rock2y, 1
     cmp rock2y, 400
-    jg rotate2
-    mov ecx, 1
+    jl rotate2
+    inc ecx
   rotate2:
     invoke RotateBlit, rock2bitMap, rock2x, rock2y, rock2angle
 
@@ -1137,10 +1137,10 @@ rotate1:
 	mov rock3on, 1
   updaterock3:
     invoke ClearRotateObject, rock3bitMap, rock3x, rock3y, rock3angle
-    add rock3y, 2
+    add rock3y, 1
     cmp rock3y, 400
-    jg rotate3
-    mov ecx, 1
+    jl rotate3
+    inc ecx
   rotate3:
     invoke RotateBlit, rock3bitMap, rock3x, rock3y, rock3angle
 
@@ -1156,21 +1156,26 @@ rotate1:
 	mov rock4on, 1
   updaterock4:
     invoke ClearRotateObject, rock4bitMap, rock4x, rock4y, rock4angle
-    add rock4y, 2
+    add rock4y, 1
     cmp rock4y, 400
-    jg rotate4
-    mov ecx, 1
+    jl rotate4
+    inc ecx
   rotate4:
     invoke RotateBlit, rock4bitMap, rock4x, rock4y, rock4angle
 
 
     ;;check if gameover
-    cmp ecx, 0
-    je notover
+    cmp ecx, 5
+    jne notover
     mov gameOver, 1
     invoke ClearRotateObject, fighter0ptr,fighter0x, fighter0y, fighter0angle
-    	invoke DrawStr, offset gameOverStr, 270, 200, 0ffh
-            invoke PlaySound, offset bombWAV, NULL, SND_ASYNC AND SND_MEMORY
+    push score
+    push offset fmtStrScore
+    push offset outStrScore
+    call wsprintf
+    add esp, 12
+    invoke DrawStr, offset outStrScore, 270, 150, 255
+      invoke DrawStr, offset gameOverStr, 270, 200, 0ffh
     	invoke PlaySound, offset gameoverWAV, NULL, SND_ASYNC AND SND_MEMORY
 notover:
 	ret
@@ -1334,8 +1339,13 @@ checkRock4:
 over:
 invoke ClearRotateObject, fighter0ptr,fighter0x, fighter0y, fighter0angle
 	invoke DrawStr, offset gameOverStr, 270, 200, 0ffh
-        invoke PlaySound, offset bombWAV, NULL, SND_ASYNC AND SND_MEMORY
-;	invoke PlaySound,NULL,NULL,SND_ASYNC
+  push score
+  push offset fmtStrScore
+  push offset outStrScore
+  call wsprintf
+  add esp, 12
+  invoke DrawStr, offset outStrScore, 270, 150, 255
+  invoke PlaySound, offset bombWAV, NULL, SND_ASYNC AND SND_MEMORY
 	invoke PlaySound, offset gameoverWAV, NULL, SND_ASYNC AND SND_MEMORY
 	mov gameOver, 1
 noCollision:
@@ -1345,7 +1355,7 @@ CheckCollision ENDP
 
 GameInit PROC USES ebx ecx esi
 
-	mov timeclick, 1000
+	mov timeclick, 500
 	mov score, 0
   mov poweruptime, 0
 	invoke DrawStarField
@@ -1451,6 +1461,19 @@ keepGoing:
         add esp, 12
         invoke DrawStr, offset outStrTime, 470, 10, 0
 	dec timeclick
+        cmp timeclick, 0
+        jg updatet
+        push score
+        push offset fmtStrScore
+        push offset outStrScore
+        call wsprintf
+        add esp, 12
+        invoke DrawStr, offset outStrScore, 270, 150, 255
+        invoke DrawStr, offset gameOverStr, 270, 200, 0ffh
+        invoke PlaySound, offset gameoverWAV, NULL, SND_ASYNC AND SND_MEMORY
+        mov gameOver, 1
+
+updatet:
         push timeclick
         push offset fmtStrTime
         push offset outStrTime
