@@ -16,15 +16,15 @@ include trig.inc
 include blit.inc
 include game.inc
 
-include Z:\home\peter\wine-masm\drive_c\masm32\include\windows.inc 
-include Z:\home\peter\wine-masm\drive_c\masm32\include\winmm.inc 
+include Z:\home\peter\wine-masm\drive_c\masm32\include\windows.inc
+include Z:\home\peter\wine-masm\drive_c\masm32\include\winmm.inc
 includelib Z:\home\peter\wine-masm\drive_c\masm32\lib\winmm.lib
 
-include Z:\home\peter\wine-masm\drive_c\masm32\include\masm32.inc 
+include Z:\home\peter\wine-masm\drive_c\masm32\include\masm32.inc
 includelib Z:\home\peter\wine-masm\drive_c\masm32\lib\masm32.lib
 
-include Z:\home\peter\wine-masm\drive_c\masm32\include\user32.inc 
-includelib Z:\home\peter\wine-masm\drive_c\masm32\lib\user32.lib  
+include Z:\home\peter\wine-masm\drive_c\masm32\include\user32.inc
+includelib Z:\home\peter\wine-masm\drive_c\masm32\lib\user32.lib
 
 ;; Has keycodes
 include keys.inc
@@ -39,7 +39,7 @@ include keys.inc
 ; lpBytes      DWORD  ?
 ;_EECS205BITMAP ENDS
 
-	
+
 .DATA
 
 gameoverWAV BYTE "game_over.wav",0
@@ -48,7 +48,7 @@ missleWAV BYTE "missle_launch.wav",0
 thrusterWAV BYTE "rocket_thrusters.wav",0
 
 
-
+poweruptime DWORD 0
 
 
 rock0x DWORD ?
@@ -92,7 +92,7 @@ fighterSpeed DWORD 10
 nukeptr DWORD ?
 nukex DWORD ?
 nukey DWORD ?
-nukeangle FXPT ? 
+nukeangle FXPT ?
 nukeOn DWORD ?  ;; 0 = nuke not on, 1 = nuke on
 nukeLife DWORD ? ;; default life time 20 * 10 px
 
@@ -106,12 +106,14 @@ winStr BYTE "CONGRATULATIONS YOU WIN!", 0
 timeclick DWORD 0
 score DWORD 0
 
-fmtStrTime BYTE "time: %d", 0 
+fmtStrTime BYTE "time: %d", 0
 outStrTime BYTE 256 DUP(0)
 
-fmtStrScore BYTE "Score: %d", 0 
+fmtStrScore BYTE "Score: %d", 0
 outStrScore BYTE 256 DUP(0)
 
+fmtStrPower BYTE "SUPER POWER TIME LEFT: %d", 0
+outStrPower BYTE 256 DUP(0)
 
 fighter_000 EECS205BITMAP <44, 37, 255,, offset fighter_000 + sizeof fighter_000>
 	BYTE 0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
@@ -715,52 +717,52 @@ asteroid_005 EECS205BITMAP <21, 23, 255,, offset asteroid_005 + sizeof asteroid_
 	BYTE 0ffh,0ffh,0ffh
 
 .CODE
-	
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;-- CheckIntersect: check if two sprites collided
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 CheckIntersect PROC USES ecx edx ebx esi oneX:DWORD, oneY:DWORD, oneBitmap:PTR EECS205BITMAP, twoX:DWORD, twoY:DWORD, twoBitmap:PTR EECS205BITMAP
-	
-	xor eax, eax 
+
+	xor eax, eax
 	;;check horizontal one's right border <=  two's left border, if yes, return 0, else jmp to check one's left border >= two's right border
 	mov ecx, oneBitmap
 	mov ebx, (EECS205BITMAP PTR [ecx]).dwWidth
 	sar ebx, 1
 	add ebx, oneX
- 
+
 	mov edx, twoBitmap
 	mov esi, (EECS205BITMAP PTR [edx]).dwWidth
 	sar esi, 1
 	mov eax, twoX
 	sub eax, esi
-	
+
 	cmp ebx, eax
 	jle No_intersect
-	
-	;;check horizonal one's left border >=  two's right border, if yes return 0, else jmp to check vertical 
+
+	;;check horizonal one's left border >=  two's right border, if yes return 0, else jmp to check vertical
         mov ebx, (EECS205BITMAP PTR [ecx]).dwWidth
-        sar ebx, 1 
+        sar ebx, 1
         mov eax, oneX
 	sub eax, ebx
 
         mov esi, (EECS205BITMAP PTR [edx]).dwWidth
         sar esi, 1
         add esi, twoX
-        
+
         cmp eax, esi
         jge No_intersect
 
 	;;check vertical, now we know they intersect horizontally, see if vertical as well, see if one's top <= two's bottom
         mov ebx, (EECS205BITMAP PTR [ecx]).dwHeight
-        sar ebx, 1 
+        sar ebx, 1
         add ebx, oneY
 
         mov esi, (EECS205BITMAP PTR [edx]).dwHeight
         sar esi, 1
         mov eax, twoY
         sub eax, esi
-	
+
 	cmp ebx, eax
 	jle No_intersect
 
@@ -776,11 +778,11 @@ CheckIntersect PROC USES ecx edx ebx esi oneX:DWORD, oneY:DWORD, oneBitmap:PTR E
 
         cmp eax, esi
         jge No_intersect
-	
-	;;they intersect 
+
+	;;they intersect
 	mov eax, 1
-	jmp DONE	
-	
+	jmp DONE
+
 No_intersect:
 	mov eax, 0
 DONE:
@@ -789,18 +791,18 @@ CheckIntersect ENDP
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;-- ClearRotateObject: clear a rotated object with angle 
+;;-- ClearRotateObject: clear a rotated object with angle
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ClearRotateObject PROC USES ecx edx ebx esi edi  lpBmp:PTR EECS205BITMAP, xcenter:DWORD, ycenter:DWORD, angle:FXPT
 	LOCAL xInput:DWORD, yInput:DWORD, tcolor:BYTE,shiftX:DWORD, shiftY:DWORD, dstWidth:DWORD, dstHeight:DWORD, dstX:DWORD, dstY:DWORD, srcX:DWORD, srcY:DWORD, i:DWORD
-	
-	
+
+
 	mov i, 0
 	invoke FixedCos, angle
 	mov ecx, eax			;ecx stores cos angle
-	invoke FixedSin, angle	
+	invoke FixedSin, angle
 	mov edi, eax			;edi stores sin angle
-	
+
 	mov esi, lpBmp
 	mov bl, (EECS205BITMAP PTR [esi]).bTransparent
 	mov tcolor, bl		;store the transparent color in tcolor
@@ -813,7 +815,7 @@ ClearRotateObject PROC USES ecx edx ebx esi edi  lpBmp:PTR EECS205BITMAP, xcente
 	imul edi
 	sar eax, 1			;dwHeight*sina /2
 	sub shiftX, eax			;set shiftX
-	
+
 	;same thing for shiftY
 	mov eax, (EECS205BITMAP PTR [esi]).dwHeight
 	imul ecx
@@ -822,49 +824,49 @@ ClearRotateObject PROC USES ecx edx ebx esi edi  lpBmp:PTR EECS205BITMAP, xcente
 	mov eax, (EECS205BITMAP PTR [esi]).dwWidth
 	imul edi
 	sar eax, 1
-	add shiftY, eax 
-		
-								
+	add shiftY, eax
+
+
 	mov eax, (EECS205BITMAP PTR [esi]).dwWidth
 	add eax, (EECS205BITMAP PTR [esi]).dwHeight
 	mov dstWidth, eax		;set dstWidth and dstHeight
 	mov dstHeight, eax
-	
+
 	neg eax
 	mov dstX, eax		;dstX = -dstWidth
 	mov dstY, eax		;dstY = -dstHeight
-	
+
 	sar shiftY, 16		;convert shiftY and shiftX to integer
 	sar shiftX, 16
 
 	jmp EVAL_X
-loop_y:	
-	mov eax, dstX	
+loop_y:
+	mov eax, dstX
 	imul ecx
 	mov srcX, eax
 	mov eax, dstY
 	imul edi
 	add srcX, eax		;srcX = dstX*cosa + dstY*sina
-	
+
 	mov eax, dstY
 	imul ecx
 	mov srcY, eax
 	mov eax, dstX
 	imul edi
 	sub srcY, eax		;srcY = dstY*cosa - dstX*sina
-	
+
 	sar srcX, 16		;convert srcX, srcY to integer
 	sar srcY, 16
-	
+
 	cmp srcX, 0		;srcX >= 0
 	jl INCRE_Y
 	mov eax, (EECS205BITMAP PTR [esi]).dwWidth
 	cmp srcX, eax		;srcX < dwWidth
 	jge INCRE_Y
-	
-	cmp srcY, 0		;srcY >= 0	
+
+	cmp srcY, 0		;srcY >= 0
 	jl INCRE_Y
-	
+
 	mov eax, (EECS205BITMAP PTR [esi]).dwHeight
 	cmp srcY, eax		;srcY < dwHeight
 	jge INCRE_Y
@@ -874,7 +876,7 @@ loop_y:
 	sub eax, shiftX
 	cmp eax, 0
 	jl INCRE_Y		;(xcenter+dstX-shiftX) >=0
-	
+
 	mov eax, xcenter
 	add eax, dstX
 	sub eax, shiftX
@@ -901,7 +903,7 @@ loop_y:
 	mov dl, BYTE PTR [eax]
 	cmp dl, tcolor					;cmp the color with transparent
 	je INCRE_Y
-	
+
 	mov ebx, xcenter				;calculate the paramenters for draw
 	add ebx, dstX
 	sub ebx, shiftX
@@ -925,12 +927,12 @@ EVAL_X:
 
         mov eax, dstHeight
 	neg eax
-        mov dstY, eax	
+        mov dstY, eax
 	mov eax, dstX
 	cmp eax, dstWidth
 	jl EVAL_Y
 
-	ret 			; Don't delete this line!!!		
+	ret 			; Don't delete this line!!!
 ClearRotateObject ENDP
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -942,7 +944,7 @@ FireNuke PROC USES ecx
 	;see if nuke already fired then update
 	cmp nukeOn, 1
 	je updateNuke
-	
+
 	;nuke not fired, see if we need to fire one
 	mov eax, OFFSET MouseStatus
 	mov eax, [eax + 8]
@@ -988,7 +990,7 @@ renderNuke:
 	jne nukeDONE
 	mov nukeOn, 0
 	invoke ClearRotateObject, nukeptr, nukex, nukey, nukeangle
-	
+
 nukeDONE:
 	ret
 FireNuke ENDP
@@ -999,14 +1001,14 @@ FireNuke ENDP
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 UpdateFighter PROC
 
-	mov eax, OFFSET MouseStatus
-        mov eax, [eax + 8]
-	cmp eax, MK_RBUTTON
-	jne checkUp
-	xor fightermode, 1
+	;mov eax, OFFSET MouseStatus
+  ;      mov eax, [eax + 8]
+	;cmp eax, MK_RBUTTON
+	;jne checkUp
+	;xor fightermode, 1
 	invoke ClearRotateObject, fighter0ptr, fighter0x, fighter0y, fighter0angle
 	cmp fightermode, 0
-	je setOne
+	jne setOne
 	mov fighterSpeed, 10
         lea eax, fighter_000
         mov fighter0ptr, eax
@@ -1015,7 +1017,7 @@ setOne:
 	mov fighterSpeed, 20
         lea eax, fighter_002
         mov fighter0ptr, eax
-updateFighter:	
+updateFighter:
         invoke RotateBlit, fighter0ptr, fighter0x, fighter0y, fighter0angle
         mov eax, OFFSET MouseStatus
         mov DWORD PTR [eax + 8], 0
@@ -1062,10 +1064,12 @@ UpdateFighter ENDP
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;-- UpdateRocks
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-UpdateRocks PROC
-	
+UpdateRocks PROC USES ecx
+  ;;ecx store if all rocks out of screen
+  mov ecx, 0
+
 	cmp rock0on, 1
-	je updaterock1
+	je updaterock0
 	invoke nrandom, 500
 	add eax, 40
 	mov rock0x, eax
@@ -1074,9 +1078,17 @@ UpdateRocks PROC
 	add rock0y, 50
 	invoke BasicBlit, rock0bitMap, rock0x, rock0y
 	mov rock0on, 1
-updaterock1:
-	cmp rock1on, 1
-	je updaterock2
+updaterock0:
+  invoke ClearRotateObject, rock0bitMap, rock0x, rock0y, rock0angle
+  add rock0y, 2
+  cmp rock0y, 400
+  jg rotate0
+  mov ecx, 1
+rotate0:
+  invoke RotateBlit, rock0bitMap, rock0x, rock0y, rock0angle
+
+  cmp rock1on, 1
+	je updaterock1
 	invoke nrandom, 500
         add eax, 40
         mov rock1x, eax
@@ -1085,9 +1097,17 @@ updaterock1:
         add rock1y, 50
         invoke BasicBlit, rock1bitMap, rock1x, rock1y
 	mov rock1on, 1
-updaterock2:
+updaterock1:
+  invoke ClearRotateObject, rock1bitMap, rock1x, rock1y, rock1angle
+  add rock1y, 2
+  cmp rock1y, 400
+  jg rotate1
+  mov ecx, 1
+rotate1:
+  invoke RotateBlit, rock1bitMap, rock1x, rock1y, rock1angle
+
 	cmp rock2on, 1
-	je updaterock3
+	je updaterock2
 	invoke nrandom, 500
         add eax, 40
         mov rock2x, eax
@@ -1096,9 +1116,17 @@ updaterock2:
         add rock2y, 50
         invoke BasicBlit, rock2bitMap, rock2x, rock2y
 	mov rock2on, 1
-updaterock3:
+  updaterock2:
+    invoke ClearRotateObject, rock2bitMap, rock2x, rock2y, rock2angle
+    add rock2y, 2
+    cmp rock2y, 400
+    jg rotate2
+    mov ecx, 1
+  rotate2:
+    invoke RotateBlit, rock2bitMap, rock2x, rock2y, rock2angle
+
 	cmp rock3on, 1
-	je updaterock4
+	je updaterock3
 	 invoke nrandom, 500
         add eax, 40
         mov rock3x, eax
@@ -1107,18 +1135,44 @@ updaterock3:
         add rock3y, 50
         invoke BasicBlit, rock3bitMap, rock3x, rock3y
 	mov rock3on, 1
-updaterock4:
+  updaterock3:
+    invoke ClearRotateObject, rock3bitMap, rock3x, rock3y, rock3angle
+    add rock3y, 2
+    cmp rock3y, 400
+    jg rotate3
+    mov ecx, 1
+  rotate3:
+    invoke RotateBlit, rock3bitMap, rock3x, rock3y, rock3angle
+
 	cmp rock4on, 1
-	je rocksover
+	je updaterock4
 	 invoke nrandom, 500
         add eax, 40
         mov rock4x, eax
         invoke nrandom, 350
         mov rock4y, eax
         add rock4y, 50
-        invoke BasicBlit, rock4bitMap, rock4x, rock4y	
+        invoke BasicBlit, rock4bitMap, rock4x, rock4y
 	mov rock4on, 1
-rocksover:
+  updaterock4:
+    invoke ClearRotateObject, rock4bitMap, rock4x, rock4y, rock4angle
+    add rock4y, 2
+    cmp rock4y, 400
+    jg rotate4
+    mov ecx, 1
+  rotate4:
+    invoke RotateBlit, rock4bitMap, rock4x, rock4y, rock4angle
+
+
+    ;;check if gameover
+    cmp ecx, 0
+    je notover
+    mov gameOver, 1
+    invoke ClearRotateObject, fighter0ptr,fighter0x, fighter0y, fighter0angle
+    	invoke DrawStr, offset gameOverStr, 270, 200, 0ffh
+            invoke PlaySound, offset bombWAV, NULL, SND_ASYNC AND SND_MEMORY
+    	invoke PlaySound, offset gameoverWAV, NULL, SND_ASYNC AND SND_MEMORY
+notover:
 	ret
 UpdateRocks ENDP
 
@@ -1131,6 +1185,14 @@ UpdateScore PROC
         add esp, 12
         invoke DrawStr, offset outStrScore, 550, 10, 0
         inc score
+
+        cmp fightermode, 1
+        je nopower
+        add poweruptime, 10
+        cmp poweruptime, 100
+        jl nopower
+        mov fightermode, 1
+nopower:
         push score
         push offset fmtStrScore
         push offset outStrScore
@@ -1145,7 +1207,7 @@ UpdateScore ENDP
 
 ;;helper check collison
 CheckCollision PROC
-	
+
 	;;check collision of nuke and rocks if nuke on
 	cmp nukeOn, 1
 	jne checkRock0
@@ -1154,10 +1216,9 @@ CheckCollision PROC
 	invoke CheckIntersect, nukex, nukey, nukeptr, rock0x, rock0y, rock0bitMap
 	cmp eax, 0
 	je checknuke1
-	invoke ClearRotateObject, nukeptr, nukex, nukey, nukeangle	
+	invoke ClearRotateObject, nukeptr, nukex, nukey, nukeangle
 	invoke ClearRotateObject, rock0bitMap, rock0x, rock0y, rock0angle
 	invoke UpdateScore
-;	invoke PlaySound, offset bombWAV, 0, SND_FILENAME OR SND_ASYNC
 	mov nukeOn, 0
 	mov rock0on, 0
 	jmp checkRock0
@@ -1167,10 +1228,9 @@ checknuke1:
 	invoke CheckIntersect, nukex, nukey, nukeptr, rock1x, rock1y, rock1bitMap
 	cmp eax, 0
 	je checknuke2
-	invoke ClearRotateObject, nukeptr, nukex, nukey, nukeangle	
+	invoke ClearRotateObject, nukeptr, nukex, nukey, nukeangle
 	invoke ClearRotateObject, rock1bitMap, rock1x, rock1y, rock1angle
 	invoke UpdateScore
-   ;     invoke PlaySound, offset bombWAV, 0, SND_FILENAME OR SND_ASYNC
 	mov nukeOn, 0
 	mov rock1on, 0
 	jmp checkRock0
@@ -1180,10 +1240,9 @@ checknuke2:
 	invoke CheckIntersect, nukex, nukey, nukeptr, rock2x, rock2y, rock2bitMap
 	cmp eax, 0
 	je checknuke3
-	invoke ClearRotateObject, nukeptr, nukex, nukey, nukeangle	
+	invoke ClearRotateObject, nukeptr, nukex, nukey, nukeangle
 	invoke ClearRotateObject, rock2bitMap, rock2x, rock2y, rock2angle
 	invoke UpdateScore
- ;       invoke PlaySound, offset bombWAV, 0, SND_FILENAME OR SND_ASYNC
 	mov nukeOn, 0
 	mov rock2on, 0
 	jmp checkRock0
@@ -1193,10 +1252,9 @@ checknuke3:
 	invoke CheckIntersect, nukex, nukey, nukeptr, rock3x, rock3y, rock3bitMap
 	cmp eax, 0
 	je checknuke4
-	invoke ClearRotateObject, nukeptr, nukex, nukey, nukeangle	
+	invoke ClearRotateObject, nukeptr, nukex, nukey, nukeangle
 	invoke ClearRotateObject, rock3bitMap, rock3x, rock3y, rock3angle
 	invoke UpdateScore
-  ;      invoke PlaySound, offset bombWAV, 0, SND_FILENAME OR SND_ASYNC
 	mov nukeOn, 0
 	mov rock3on, 0
 	jmp checkRock0
@@ -1206,10 +1264,9 @@ checknuke4:
 	invoke CheckIntersect, nukex, nukey, nukeptr, rock4x, rock4y, rock4bitMap
 	cmp eax, 0
 	je checkRock0
-	invoke ClearRotateObject, nukeptr, nukex, nukey, nukeangle	
+	invoke ClearRotateObject, nukeptr, nukex, nukey, nukeangle
 	invoke ClearRotateObject, rock4bitMap, rock4x, rock4y, rock4angle
 	invoke UpdateScore
-;        invoke PlaySound, offset bombWAV, 0, SND_FILENAME OR SND_ASYNC
 	mov nukeOn, 0
 	mov rock4on, 0
 
@@ -1219,47 +1276,63 @@ checkRock0:
 	invoke CheckIntersect, fighter0x, fighter0y, fighter0ptr, rock0x, rock0y, rock0bitMap
 	cmp eax, 0
 	je checkRock1
-	invoke ClearRotateObject, fighter0ptr,fighter0x, fighter0y, fighter0angle	
-	invoke ClearRotateObject, rock0bitMap, rock0x, rock0y, rock0angle
-	invoke UpdateScore
-	jmp over
+  invoke ClearRotateObject, rock0bitMap, rock0x, rock0y, rock0angle
+  mov rock0on, 0
+  cmp fightermode, 1
+  jne over
+  invoke UpdateScore
+
 checkRock1:
 	cmp rock1on, 0
 	je checkRock2
 	invoke CheckIntersect, fighter0x, fighter0y, fighter0ptr, rock1x, rock1y, rock1bitMap
 	cmp eax, 0
 	je checkRock2
-	invoke ClearRotateObject, fighter0ptr,fighter0x, fighter0y, fighter0angle	
-	invoke ClearRotateObject, rock1bitMap, rock1x, rock1y, rock1angle
-	jmp over
+  invoke ClearRotateObject, rock1bitMap, rock1x, rock1y, rock1angle
+  mov rock1on, 0
+  cmp fightermode, 1
+  jne over
+  invoke UpdateScore
+
 checkRock2:
 	cmp rock2on, 0
 	je checkRock3
 	invoke CheckIntersect, fighter0x, fighter0y, fighter0ptr, rock2x, rock2y, rock2bitMap
 	cmp eax, 0
 	je checkRock3
-	invoke ClearRotateObject, fighter0ptr,fighter0x, fighter0y, fighter0angle	
-	invoke ClearRotateObject, rock2bitMap, rock2x, rock2y, rock2angle
-	jmp over
+  invoke ClearRotateObject, rock2bitMap, rock2x, rock2y, rock2angle
+  mov rock2on, 0
+  cmp fightermode, 1
+  jne over
+  invoke UpdateScore
+
 checkRock3:
 	cmp rock3on, 0
 	je checkRock4
 	invoke CheckIntersect, fighter0x, fighter0y, fighter0ptr, rock3x, rock3y, rock3bitMap
 	cmp eax, 0
 	je checkRock4
-	invoke ClearRotateObject, fighter0ptr,fighter0x, fighter0y, fighter0angle	
-	invoke ClearRotateObject, rock3bitMap, rock3x, rock3y, rock3angle
-	jmp over
+  invoke ClearRotateObject, rock3bitMap, rock3x, rock3y, rock3angle
+  mov rock3on, 0
+  cmp fightermode, 1
+  jne over
+  invoke UpdateScore
+
 checkRock4:
 	cmp rock4on, 0
 	je noCollision
 	invoke CheckIntersect, fighter0x, fighter0y, fighter0ptr, rock4x, rock4y, rock4bitMap
 	cmp eax, 0
 	je noCollision
-	invoke ClearRotateObject, fighter0ptr,fighter0x, fighter0y, fighter0angle	
-	invoke ClearRotateObject, rock0bitMap, rock4x, rock4y, rock4angle
-	jmp over
+  invoke ClearRotateObject, rock4bitMap, rock4x, rock4y, rock4angle
+  mov rock4on, 0
+  cmp fightermode, 1
+  jne over
+  invoke UpdateScore
+  jmp noCollision
+
 over:
+invoke ClearRotateObject, fighter0ptr,fighter0x, fighter0y, fighter0angle
 	invoke DrawStr, offset gameOverStr, 270, 200, 0ffh
         invoke PlaySound, offset bombWAV, NULL, SND_ASYNC AND SND_MEMORY
 ;	invoke PlaySound,NULL,NULL,SND_ASYNC
@@ -1271,10 +1344,10 @@ CheckCollision ENDP
 
 
 GameInit PROC USES ebx ecx esi
-	
+
 	mov timeclick, 1000
-	mov score, 0	
-	
+	mov score, 0
+  mov poweruptime, 0
 	invoke DrawStarField
 
         push score
@@ -1283,28 +1356,28 @@ GameInit PROC USES ebx ecx esi
         call wsprintf
         add esp, 12
         invoke DrawStr, offset outStrScore, 550, 10, 255
-	
+
 	;random seed
-	rdtsc 
-	invoke nseed, eax	
+	rdtsc
+	invoke nseed, eax
 
 	;load the fighter
 	mov fightermode, 0
 	mov fighterSpeed, 10
 	lea ebx, fighter_000
 	mov fighter0ptr, ebx
-	mov fighter0x, 270	
+	mov fighter0x, 270
 	mov fighter0y, 200
 	mov fighter0angle, 0
 	invoke BasicBlit, ebx, 270, 200
-	
+
 	;load the nuke
 	lea ecx, nuke_000
 	mov nukeptr, ecx
 	mov nukeOn, 0
 	mov nukeLife, 20
 	mov nukeangle, 0
-	
+
 	;load the asteroids
 
 	lea ebx, asteroid_001
@@ -1335,7 +1408,7 @@ GameInit PROC USES ebx ecx esi
 	mov rock3bitMap, ebx
 	mov rock3on, 1
 	invoke BasicBlit, ebx, 240,300
-	
+
 	lea ebx, asteroid_005
 	mov rock4x, 500
 	mov rock4y, 200
@@ -1346,7 +1419,7 @@ GameInit PROC USES ebx ecx esi
 
 	ret         ;; Do not delete this line!!!
 GameInit ENDP
-	
+
 
 
 GamePlay PROC USES ebx ecx
@@ -1355,7 +1428,7 @@ GamePlay PROC USES ebx ecx
 
 	cmp gameOver, 1
 	je gameover
-	
+
 	cmp KeyPress, 20h ;;space
 	jne checkResume
 	mov pause, 1
@@ -1368,7 +1441,7 @@ checkPause:
 	cmp pause, 1
 	jne keepGoing
         invoke DrawStr, offset resumeStr, 250, 10, 000h
-	invoke DrawStr, offset pauseStr, 250, 10, 0ffh	
+	invoke DrawStr, offset pauseStr, 250, 10, 0ffh
 	jmp gameover
 keepGoing:
         push timeclick
@@ -1377,7 +1450,7 @@ keepGoing:
         call wsprintf
         add esp, 12
         invoke DrawStr, offset outStrTime, 470, 10, 0
-	dec timeclick	
+	dec timeclick
         push timeclick
         push offset fmtStrTime
         push offset outStrTime
@@ -1385,15 +1458,40 @@ keepGoing:
         add esp, 12
         invoke DrawStr, offset outStrTime, 470, 10, 255
 
-	
+  cmp fightermode, 1
+  jne powernotdec
+  push poweruptime
+  push offset fmtStrPower
+  push offset outStrPower
+  call wsprintf
+  add esp, 12
+  invoke DrawStr, offset outStrPower, 20, 10, 0
+  dec poweruptime
+  push poweruptime
+  push offset fmtStrPower
+  push offset outStrPower
+  call wsprintf
+  add esp, 12
+  invoke DrawStr, offset outStrPower, 20, 10, 255
+  cmp poweruptime, 0
+  jg powernotdec
+  mov fightermode, 0
+  push poweruptime
+  push offset fmtStrPower
+  push offset outStrPower
+  call wsprintf
+  add esp, 12
+  invoke DrawStr, offset outStrPower, 20, 10, 0
+powernotdec:
+
 	invoke DrawStr, offset pauseStr, 250, 10, 000h
 	invoke DrawStr, offset resumeStr, 250, 10, 0ffh
 	invoke FireNuke
 	invoke UpdateFighter
+  invoke CheckCollision
 	invoke UpdateRocks
-	invoke CheckCollision
 gameover:
-	ret     
+	ret
 GamePlay ENDP
 
 
